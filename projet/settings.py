@@ -12,8 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
 import os
 load_dotenv()
 api_key = os.getenv("API_KEY")
@@ -35,10 +34,12 @@ TELEGRAM_BOT_AUTH_TOKEN = os.getenv("TELEGRAM_BOT_AUTH_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 ALLOWED_HOSTS = ["*"]
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://localhost:4173",
-]
+
+auth_token = os.getenv("ALLOWED_ORIGINS")
+
+CORS_ALLOWED_ORIGINS = auth_token.split(",") if auth_token else []
+    
+    
 
 # Application definition
 CACHES = {
@@ -99,9 +100,13 @@ WSGI_APPLICATION = "projet.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    "default": {        
+         'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv("POSTGRES_DATABASE") ,        
+        'USER': os.getenv("POSTGRES_USER"),        
+        'PASSWORD': os.getenv("POSTGRES_PASSWORD"), 
+        'HOST': os.getenv('POSTGRES_HOST'),           
+        'PORT': os.getenv('POSTGRES_PORT'),        
     }
 }
 
