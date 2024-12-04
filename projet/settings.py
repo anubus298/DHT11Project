@@ -20,6 +20,10 @@ api_key = os.getenv("API_KEY")
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+STATICFILES_DIRS = [BASE_DIR/'static',]
+STATIC_ROOT = BASE_DIR/'staticfiles'
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
