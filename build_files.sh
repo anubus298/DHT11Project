@@ -1,5 +1,5 @@
 echo "installing libpq-dev"
-sudo apt-get install libpq-dev
+apt-get install libpq-dev
 echo "installing packages..."
 python3 -m  pip install -r requirements.txt
 echo "Collectiong static files..."
