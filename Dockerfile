@@ -1,9 +1,9 @@
 
-FROM --platform=$BUILDPLATFORM python:3.10-alpine AS builder
+FROM --platform=$BUILDPLATFORM python:3.10- AS builder
 EXPOSE 8000
 WORKDIR /app 
 COPY requirements.txt /app
-RUN apt-get install libpq-dev
+RUN apk add --no-cache libpq-dev
 RUN pip3 install -r requirements.txt --no-cache-dir
 COPY . /app 
 ENTRYPOINT ["python3"] 
