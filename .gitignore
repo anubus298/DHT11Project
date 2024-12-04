@@ -1,0 +1,82 @@
+# Python bytecode files
+*.pyc
+*.pyo
+__pycache__/
+
+# Django-specific files
+db.sqlite3
+*.log
+*.pot
+*.py[co]
+
+# Django secret key and sensitive configuration
+.env
+
+# Media/uploads
+media/
+
+# Static files
+staticfiles/
+static/
+
+# Virtual environments
+projet/Include/
+projet/Scripts/
+projet/Lib/
+projet/pyvenv.cfg
+
+venv/
+.venv/
+env/
+ENV/
+.virtualenv/
+
+
+# VSCode configuration files
+.vscode/
+
+# PyCharm IDE files
+.idea/
+
+# MacOS-specific files
+.DS_Store
+
+# Linux-specific files
+*.swp
+
+# Windows-specific files
+Thumbs.db
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pytest
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Migrations
+**/migrations/*.py
+!**/migrations/__init__.py
+
+# Logs
+*.log
+
+# MyPy
+.mypy_cache/
+
+# Celery
+celerybeat-schedule
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Docker
+*.env
+*.pid
