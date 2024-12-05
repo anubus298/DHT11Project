@@ -20,7 +20,7 @@ api_key = os.getenv("API_KEY")
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-STATIC_ROOT = BASE_DIR/'staticfiles'
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,6 +39,7 @@ STATIC_URL = '/static/'
 # Additional directories to search for static files
 STATICFILES_DIRS = [
     BASE_DIR / "static",  # Modify this if you have static files in a specific location
+    BASE_DIR / "staticfiles",  # Modify this if you have static files in a specific location
 ]
 
 TELEGRAM_BOT_AUTH_TOKEN = os.getenv("TELEGRAM_BOT_AUTH_TOKEN")
