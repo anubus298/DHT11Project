@@ -18,7 +18,7 @@ load_dotenv()
 api_key = os.getenv("API_KEY")
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 STATIC_ROOT = BASE_DIR/'staticfiles'
 
@@ -31,7 +31,15 @@ SECRET_KEY = "django-insecure-#+j86&eu(1n@^8d+q=!1j0&)fizz0-rmg41!7-*lb94q8*&p3b
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+STATIC_ROOT = '/app/staticfiles'
 
+# URL to access static files
+STATIC_URL = '/static/'
+
+# Additional directories to search for static files
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Modify this if you have static files in a specific location
+]
 
 TELEGRAM_BOT_AUTH_TOKEN = os.getenv("TELEGRAM_BOT_AUTH_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -70,6 +78,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
+        'whitenoise.middleware.WhiteNoiseMiddleware',  # Add this after SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -145,10 +154,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = "static/"
 
 
 
