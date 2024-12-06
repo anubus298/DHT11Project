@@ -58,28 +58,23 @@ def getStatistics(request):
     one_week_ago = today - timedelta(weeks=1)
     one_month_ago = today - timedelta(days=30)
 
-    # Time ranges for comparison
-    yesterday = today - timedelta(days=1)
-    last_week_start = one_week_ago - timedelta(weeks=1)
-    last_month_start = one_month_ago - timedelta(days=30)
-
     # TimescaleDB query for daily, weekly, and monthly statistics using time_bucket
     query = f"""
     WITH stats AS (
         SELECT
             time_bucket('1 day', dt) AS bucket_time,
-            AVG(temp) AS avg_temp,
-            AVG(hum) AS avg_hum
+            ROUND(AVG(temp),2) AS avg_temp,
+            ROUND(AVG(hum),2) AS avg_hum
         FROM dht11
         WHERE dt >= '{one_month_ago}'
         GROUP BY bucket_time
     ),
     extremes AS (
         SELECT
-            MAX(temp) AS highest_temp,
-            MIN(temp) AS lowest_temp,
-            MAX(hum) AS highest_hum,
-            MIN(hum) AS lowest_hum
+            ROUND(MAX(temp),2) AS highest_temp,
+            ROUND(MIN(temp),2) AS lowest_temp,
+            ROUND(MAX(hum),2) AS highest_hum,
+            ROUND(MIN(hum),2) AS lowest_hum
         FROM dht11
         WHERE dt >= '{one_month_ago}'
     )
@@ -199,8 +194,8 @@ def getStatistics(request):
 
     formatted_result["avg"]["weekly"] = {
         "record": {
-            "temp": weekly_avg["avg_temp"] or 0,
-            "hum": weekly_avg["avg_hum"] or 0,
+            "temp": round(weekly_avg["avg_temp"] or 0, 2),
+            "hum": round(weekly_avg["avg_hum"] or 0, 2),
             "dt": one_week_ago.isoformat(),
         },
         "humGrow": weekly_hum_growth,
@@ -209,8 +204,8 @@ def getStatistics(request):
 
     formatted_result["avg"]["monthly"] = {
         "record": {
-            "temp": monthly_avg["avg_temp"] or 0,
-            "hum": monthly_avg["avg_hum"] or 0,
+            "temp": round(monthly_avg["avg_temp"] or 0, 2),
+            "hum": round(monthly_avg["avg_hum"] or 0, 2),
             "dt": one_month_ago.isoformat(),
         },
         "humGrow": monthly_hum_growth,
@@ -218,7 +213,7 @@ def getStatistics(request):
     }
 
     # Cache the result for later requests
-    cache.set("statistics-summary", formatted_result, 60 * 60 * 3)  # Cache for 3 hours
+    cache.set("statistics-summary", formatted_result, 30)  # Cache for 30 seconds
 
     return Response({"data": formatted_result})
 
@@ -272,6 +267,68 @@ def getMonthsAverage(request):
 
 
 @api_view(["GET"])
+def getRangeAverage(request):
+    from_date = request.GET.get("from")
+    to_date = request.GET.get("to")
+
+    # Validate and parse the input dates
+    try:
+        from_date = datetime.fromisoformat(from_date).date()
+        to_date = datetime.fromisoformat(to_date).date()
+    except (ValueError, TypeError):
+        return Response(
+            {"error": "Invalid date format. Use ISO format (YYYY-MM-DD)."}, status=400
+        )
+
+    if from_date > to_date:
+        return Response(
+            {"error": "from_date must be earlier than or equal to to_date."}, status=400
+        )
+
+    # TimescaleDB query to generate the series and fill missing days with null values for temp and hum
+    query = f"""
+    WITH day_range AS (
+        SELECT generate_series(
+            '{from_date}'::date,
+            '{to_date}'::date,
+            '1 day'::interval
+        )::date AS bucket_day
+    )
+    SELECT
+        dr.bucket_day,
+        ROUND(AVG(dht.temp), 2) AS temp,
+        ROUND(AVG(dht.hum), 2) AS hum
+    FROM
+        day_range dr
+    LEFT JOIN dht11 dht ON dht.dt::date = dr.bucket_day
+    GROUP BY
+        dr.bucket_day
+    ORDER BY
+        dr.bucket_day ASC;
+    """
+
+    cursor = connection.cursor()
+    cursor.execute(query)
+    result = cursor.fetchall()
+
+    if not result:
+        # Handle empty result
+        return Response({"data": [], "message": "No data found for the given range."})
+
+    # Format the result into a list of dictionaries
+    formatted_result = [
+        {
+            "dt": row[0].strftime("%Y-%m-%d"),
+            "temp": row[1] if row[1] is not None else None,
+            "hum": row[2] if row[2] is not None else None,
+        }
+        for row in result
+    ]
+    formatted_result.reverse()
+    return Response({"data": formatted_result})
+
+
+@api_view(["GET"])
 def getDailyAverage(request):
     n_days = int(request.GET.get("n", 7))
     if n_days > 800:
@@ -309,6 +366,91 @@ def getDailyAverage(request):
     formatted_result = [{"dt": row[0], "temp": row[1], "hum": row[2]} for row in result]
 
     return Response({"data": formatted_result})
+
+
+@api_view(["GET"])
+def getDateDifference(request):
+    from_date = request.GET.get("from")
+    to_date = request.GET.get("to")
+
+    # Validate and parse the input dates
+    try:
+        from_date = datetime.fromisoformat(from_date).date()
+        to_date = datetime.fromisoformat(to_date).date()
+    except (ValueError, TypeError):
+        return Response(
+            {"error": "Invalid date format. Use ISO format (YYYY-MM-DD)."}, status=400
+        )
+
+    if from_date > to_date:
+        return Response(
+            {"error": "from_date must be earlier than or equal to to_date."}, status=400
+        )
+
+    # TimescaleDB query using direct comparison of the two dates
+    query = f"""
+    WITH data_from_dates AS (
+        -- Fetch data for the first date
+        SELECT
+            dht.dt::date AS date,
+            ROUND(AVG(dht.temp), 2) AS temp,
+            ROUND(AVG(dht.hum), 2) AS hum
+        FROM
+            dht11 dht
+        WHERE
+            dht.dt::date = '{from_date}'
+        GROUP BY
+            dht.dt::date
+        UNION ALL
+        -- Fetch data for the second date
+        SELECT
+            dht.dt::date AS date,
+            ROUND(AVG(dht.temp), 2) AS temp,
+            ROUND(AVG(dht.hum), 2) AS hum
+        FROM
+            dht11 dht
+        WHERE
+            dht.dt::date = '{to_date}'
+        GROUP BY
+            dht.dt::date
+    )
+    SELECT
+        -- Select the data for both dates
+        date,
+        temp,
+        hum
+    FROM data_from_dates
+    ORDER BY date;
+    """
+
+    cursor = connection.cursor()
+    cursor.execute(query)
+    result = cursor.fetchall()
+
+    if len(result) < 2:
+        return Response({"error": "Data not found for both dates."}, status=404)
+
+    # Extract data for both dates
+    from_temp, from_hum = result[0][1], result[0][2]
+    to_temp, to_hum = result[1][1], result[1][2]
+
+    # Calculate the differences between the two dates
+    temp_diff = (
+        to_temp - from_temp if to_temp is not None and from_temp is not None else None
+    )
+    hum_diff = (
+        to_hum - from_hum if to_hum is not None and from_hum is not None else None
+    )
+
+    # Prepare and return the response
+    data = {
+        "from_date": from_date,
+        "to_date": to_date,
+        "temp_diff": temp_diff,
+        "hum_diff": hum_diff,
+    }
+
+    return Response({"data": data})
 
 
 class Dhtviews(generics.CreateAPIView):
