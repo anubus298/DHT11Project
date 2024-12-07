@@ -47,11 +47,12 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 ALLOWED_HOSTS = ["*"]
 
-auth_token = os.getenv("ALLOWED_ORIGINS")
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS")
+csrf_trusted_origins_env = os.getenv("CSRF_TRUSTED_ORIGINS")
 
-CORS_ALLOWED_ORIGINS = auth_token.split(",") if auth_token else []
+CORS_ALLOWED_ORIGINS = allowed_origins_env.split(",") if allowed_origins_env else []
     
-    
+CSRF_TRUSTED_ORIGINS = csrf_trusted_origins_env.split(",") if csrf_trusted_origins_env else []
 
 # Application definition
 CACHES = {
